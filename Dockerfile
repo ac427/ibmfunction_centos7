@@ -18,12 +18,20 @@
 # Dockerfile for docker skeleton (useful for running blackbox binaries, scripts, or Python 3 actions) .
 FROM centos:7
 
+ADD requirements.txt /
+
+
 # Upgrade and install basic Python dependencies.
-RUN yum -y install epel-release bash perl zip git curl wget openssl ca-certificates sed openssh-client bzip2-devel gcc glibc-devel \
-  && yum -y install jq python2-pip \
+RUN yum -y install curl unzip epel-release bash perl zip git curl wget openssl ca-certificates sed openssh-client bzip2-devel gcc glibc-devel \
+    && yum -y install jq python2-pip python3-pip python3 \
 #setuptools upgrade fails
 #  && pip install --upgrade pip setuptools six \
-  && pip install --no-cache-dir six gevent==1.3.6 flask==1.0.2 
+  && pip install --no-cache-dir six gevent==1.3.6 flask==1.0.2 \ 
+  &&  curl -o saclient.zip -sL "https://cloud.appscan.com/api/SCX/StaticAnalyzer/SAClientUtil?os=linux" \
+  &&  unzip saclient.zip && rm -rf saclient.zip && mv SAClientUtil* /usr/local/saclient  \
+  &&  yum -y clean all \
+  &&  rm -Rf /var/cache/yum \
+  &&  pip3 install --no-cache-dir -r requirements.txt
 
 ENV FLASK_PROXY_PORT 8080
 
@@ -37,4 +45,4 @@ RUN mkdir -p /action
 ADD stub.sh /action/exec
 RUN chmod +x /action/exec
 
-CMD ["/bin/bash", "-c", "cd actionProxy && python3 -u actionproxy.py"]
+CMD ["/bin/bash", "-c", "cd actionProxy && python -u actionproxy.py"]
