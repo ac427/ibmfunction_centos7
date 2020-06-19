@@ -15,34 +15,34 @@
 # limitations under the License.
 #
 
-# Dockerfile for docker skeleton (useful for running blackbox binaries, scripts, or Python 3 actions) .
-FROM centos:7
-
-ADD requirements.txt /
-
-
-# Upgrade and install basic Python dependencies.
-RUN yum -y install curl unzip epel-release bash perl zip git curl wget openssl ca-certificates sed openssh-client bzip2-devel gcc glibc-devel \
-    && yum -y install jq python2-pip python3-pip python3 \
-#setuptools upgrade fails
-#  && pip install --upgrade pip setuptools six \
-  && pip install --no-cache-dir six gevent==1.3.6 flask==1.0.2 \ 
-  &&  curl -o saclient.zip -sL "https://cloud.appscan.com/api/SCX/StaticAnalyzer/SAClientUtil?os=linux" \
-  &&  unzip saclient.zip && rm -rf saclient.zip && mv SAClientUtil* /usr/local/saclient  \
-  &&  yum -y clean all \
-  &&  rm -Rf /var/cache/yum \
-  &&  pip3 install --no-cache-dir -r requirements.txt
+# Dockerfile for python AI actions, overrides and extends ActionRunner from actionProxy
+FROM ubuntu:xenial
 
 ENV FLASK_PROXY_PORT 8080
+ENV PYTHONIOENCODING "UTF-8"
+ENV PATH="/usr/local/saclient/bin:${PATH}"
 
-RUN mkdir -p /actionProxy/owplatform
-ADD actionproxy.py /actionProxy/
-ADD owplatform/__init__.py /actionProxy/owplatform/
-ADD owplatform/knative.py /actionProxy/owplatform/
-ADD owplatform/openwhisk.py /actionProxy/owplatform/
+COPY requirements.txt requirements.txt
 
-RUN mkdir -p /action
-ADD stub.sh /action/exec
-RUN chmod +x /action/exec
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+        gcc \
+        libc-dev \
+        libxslt-dev \
+        libxml2-dev \
+        libffi-dev \
+        libssl-dev \
+        zip \
+        unzip \
+        curl python3-pip \
+        && rm -rf /var/lib/apt/lists/* \
+        && pip3 install --no-cache-dir -r requirements.txt \
+        &&  curl -o saclient.zip -sL "https://cloud.appscan.com/api/SCX/StaticAnalyzer/SAClientUtil?os=linux" \
+        &&  unzip saclient.zip && rm -rf saclient.zip && mv SAClientUtil* /usr/local/saclient
 
-CMD ["/bin/bash", "-c", "cd actionProxy && python -u actionproxy.py"]
+RUN mkdir -p /actionProxy
+ADD https://raw.githubusercontent.com/apache/openwhisk-runtime-docker/dockerskeleton%401.3.3/core/actionProxy/actionproxy.py /actionProxy/actionproxy.py
+
+RUN mkdir -p /pythonAction
+COPY pythonrunner.py /pythonAction/pythonrunner.py
+
+CMD ["/bin/bash", "-c", "cd /pythonAction && python -u pythonrunner.py"]
