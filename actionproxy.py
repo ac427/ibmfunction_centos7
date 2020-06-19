@@ -305,31 +305,32 @@ def main():
 # speed is less of a concern it is advisable to use the factory pattern described below. As for now
 # we have decided the trade off in speed is not worth it. In runtimes, milliseconds matter!
 #
-#    platformImpl = None
-#    PlatformFactory.addPlatform(PLATFORM_OPENWHISK, OpenWhiskImpl)
-#    PlatformFactory.addPlatform(PLATFORM_KNATIVE, KnativeImpl)
-#
-#    targetPlatform = os.getenv('__OW_RUNTIME_PLATFORM', DEFAULT_PLATFORM)
-#    if not PlatformFactory.isSupportedPlatform(targetPlatform):
-#        raise InvalidPlatformError(targetPlatform, PlatformFactory.supportedPlatforms())
-#    else:
-#        platformFactory = PlatformFactory()
-#        platformImpl = platformFactory.createPlatformImpl(targetPlatform, proxy)
-#    platformImpl.registerHandlers(init, run)
-
     platformImpl = None
-    targetPlatform = os.getenv('__OW_RUNTIME_PLATFORM', DEFAULT_PLATFORM).lower()
-    # Target Knative if it specified, otherwise just default to OpenWhisk.
-    if targetPlatform == PLATFORM_KNATIVE:
-        platformImpl = KnativeImpl(proxy)
-    else:
-        platformImpl = OpenWhiskImpl(proxy)
-        if targetPlatform != PLATFORM_OPENWHISK:
-            print(f"Invalid __OW_RUNTIME_PLATFORM {targetPlatform}! " +
-                  f"Valid Platforms are {PLATFORM_OPENWHISK} and {PLATFORM_KNATIVE}. " +
-                  f"Defaulting to {PLATFORM_OPENWHISK}.", file=sys.stderr)
+    PlatformFactory.addPlatform(PLATFORM_OPENWHISK, OpenWhiskImpl)
+    PlatformFactory.addPlatform(PLATFORM_KNATIVE, KnativeImpl)
 
+    targetPlatform = os.getenv('__OW_RUNTIME_PLATFORM', DEFAULT_PLATFORM)
+    if not PlatformFactory.isSupportedPlatform(targetPlatform):
+        raise InvalidPlatformError(targetPlatform, PlatformFactory.supportedPlatforms())
+    else:
+        platformFactory = PlatformFactory()
+        platformImpl = platformFactory.createPlatformImpl(targetPlatform, proxy)
     platformImpl.registerHandlers(init, run)
+
+### commented by ac
+ #   platformImpl = None
+ #   targetPlatform = os.getenv('__OW_RUNTIME_PLATFORM', DEFAULT_PLATFORM).lower()
+ #   # Target Knative if it specified, otherwise just default to OpenWhisk.
+ #   if targetPlatform == PLATFORM_KNATIVE:
+ #       platformImpl = KnativeImpl(proxy)
+ #   else:
+ #       platformImpl = OpenWhiskImpl(proxy)
+ #       if targetPlatform != PLATFORM_OPENWHISK:
+ #           print(f"Invalid __OW_RUNTIME_PLATFORM {targetPlatform}! " +
+ #                 f"Valid Platforms are {PLATFORM_OPENWHISK} and {PLATFORM_KNATIVE}. " +
+ #                 f"Defaulting to {PLATFORM_OPENWHISK}.", file=sys.stderr)
+
+ #  platformImpl.registerHandlers(init, run)
 
     port = int(os.getenv('FLASK_PROXY_PORT', 8080))
     server = WSGIServer(('0.0.0.0', port), proxy, log=None)
